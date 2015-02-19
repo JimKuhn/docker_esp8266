@@ -28,6 +28,7 @@ ENV HOME /home/user
 RUN echo 'umask 000' >>/home/user/.profile
 USER root
 RUN chown user /opt
+RUN usermod -a -G dialout user
 USER user
 RUN echo \
 'cd /opt\n' \
@@ -51,8 +52,7 @@ RUN echo \
 'make\n' \
 | /bin/bash -l
 # CLEANUP - for flattening
-USER root
-RUN usermod -a -G dialout user
-RUN rm -rf /opt/esp-open-sdk/crosstool-NG
-RUN apt-get clean
+# USER root
+# RUN rm -rf /opt/esp-open-sdk/crosstool-NG
+# RUN apt-get clean
 USER user
