@@ -2,7 +2,7 @@ FROM debian:jessie
 MAINTAINER Jim Kuhn <j.kuhn@computer.org>
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y netcat-openbsd && mkdir /pp
-RUN echo \
+RUN /bin/echo -e \
 'HOST=$(ip route show default|grep via|head -1|awk '"'"'{print $3}'"'"')\n' \
 'PROXY_FILE="/etc/apt/apt.conf.d/02proxy"\n' \
 'echo -n "apt-get PROXY "\n' \
@@ -19,18 +19,17 @@ RUN DIR=$(dirname $(which apt-get)); mv $(which apt-get) /pp; echo 'sh /pp/enabl
 RUN echo "America/Toronto"|tee /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
 RUN apt-get update && apt-get install -y git-core
 RUN apt-get update && apt-get install -y vim
-RUN apt-get update && apt-get install -y make unrar-free autoconf automake libtool gcc g++ gperf flex bison texinfo gawk ncurses-dev libexpat-dev python sed git wget bzip2 unzip python-serial
-RUN echo 'root:docker'|chpasswd
-RUN useradd -ms /bin/bash user
-RUN echo 'user:user'|chpasswd
+RUN apt-get update && apt-get install -y make unrar-free autoconf automake libtool gcc g++ gperf flex bison texinfo gawk ncurses-dev libexpat-dev python3 python sed git wget bzip2 unzip python-serial
+RUN echo 'root:docker'|chpasswd && useradd -ms /bin/bash user && echo 'user:user'|chpasswd && echo 'umask 000' >>/home/user/.profile
+RUN if [ -f /etc/sudoers ]; then echo "user ALL=NOPASSWD: ALL" >> /etc/sudoers; fi
 USER user
 ENV HOME /home/user
-RUN echo 'umask 000' >>/home/user/.profile
+WORKDIR /home/user
 USER root
 RUN chown user /opt
 RUN usermod -a -G dialout user
 USER user
-RUN echo \
+RUN /bin/echo -e \
 'cd /opt\n' \
 'git clone https://github.com/pfalcon/esp-open-sdk.git --depth=1\n' \
 'cd esp-open-sdk\n' \
@@ -39,20 +38,21 @@ RUN echo \
 'make\n' \
 'echo '"'"'export PATH=/opt/esp-open-sdk/xtensa-lx106-elf/bin:$PATH'"'"' >>~/.profile\n' \
 | /bin/bash -l
-RUN echo \
+RUN /bin/echo -e \
 'cd /opt\n' \
 'git clone https://github.com/nodemcu/nodemcu-firmware.git --depth=1\n' \
 'cd node*\n' \
 'make\n' \
 | /bin/bash -l
-RUN echo \
-'cd /opt\n' \
-'git clone https://github.com/micropython/micropython.git --depth 1\n' \
-'cd micropython/esp8266\n' \
-'make\n' \
-| /bin/bash -l
-# CLEANUP - for flattening
+# INLINE
+# cd /opt
+# git clone https://github.com/micropython/micropython.git --depth 1
+# cd micropython/esp8266
+# make
+# ---
+# CLEANUP - for squashing
 # USER root
 # RUN rm -rf /opt/esp-open-sdk/crosstool-NG
 # RUN apt-get clean
-USER user
+# USER user
+CMD ["/bin/bash", "-l" ]
